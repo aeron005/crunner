@@ -3,7 +3,7 @@
 **crunner** is a simple GUI-based tool for running code and viewing its output. It differs from traditional code editors in that the file does not need to be saved before running. This makes it ideal for tweaking single-file sketches.
 
 <p align="center"> 
-![crunner](animation.gif)
+<img src="animation.gif"/>
 </p>
 
 ## Overview
