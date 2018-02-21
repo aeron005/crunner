@@ -1,0 +1,105 @@
+{
+	"editor": {
+		"font": "monospace 11",
+		"style": "solarized-dark",
+		"language": "python",
+		"styles": [
+			"classic",
+			"cobalt",
+			"kate",
+			"oblivion",
+			"solarized-dark",
+			"solarized-light",
+			"tango"
+		]
+	},
+
+	"languages": {
+		"asm":{
+			"mime": "text/x-asm",
+			"syntax": "asm",
+			"action": "gcc",
+			"actions": {
+				"gcc":[["gcc", "-xassembler", "-o", ".runner", "-"],["./.runner"]]
+			},
+			"clean": ".runner"
+		},
+		"c":{
+			"mime": "text/x-c",
+			"syntax": "c",
+			"action": "gcc",
+			"actions": {
+				"gcc":[["gcc", "-xc", "-o", ".runner", "-"],["./.runner"]],
+				"tcc":[["tcc", "-run", "-"]],
+				"gcc_asm":[["gcc","-xc","-S","-o",".runner","-"],["cat","./.runner"]]
+			},
+			"clean": ".runner"
+		},
+		"javascript":{
+			"mime": "text/plain",
+			"syntax": "js",
+			"action": "node",
+			"actions": {"node":[["node"]]}
+		},
+		"python":{
+			"mime": "text/x-python",
+			"syntax": "python",
+			"action": "python2",
+			"actions": {
+				"python":[["python"]],
+				"python2":[["python2"]],
+				"python3":[["python3"]]
+			}
+		},
+		"lua":{
+			"mime": "text/plain",
+			"syntax": "lua",
+			"action": "luajit",
+			"actions": {
+				"luajit":[["luajit"]],
+				"lua":[["lua"]],
+				"lua5.1":[["lua5.1"]],
+				"lua5.2":[["lua5.2"]],
+				"lua5.3":[["lua5.3"]]
+			}
+		},
+		"lisp":{
+			"mime": "text/x-lisp",
+			"syntax": "scheme",
+			"action": "clisp",
+			"actions": {
+				"clisp":[["clisp","-q","-q","-"]],
+				"gcl":[["sh","-c","echo >.runner.lsp && cat - >>.runner.lsp"],["gcl","-f",".runner.lsp"],["echo"]]
+			},
+			"clean": ".runner.lsp"
+		},
+		"sh":{
+			"mime": "text/plain",
+			"syntax": "sh",
+			"action": "bash",
+			"actions": {
+				"sh":[["sh","-"]],
+				"bash":[["bash","-"]],
+				"zsh":[["zsh","-"]]
+			}
+		},
+		"bc":{
+			"mime": "text/plain",
+			"syntax": "js",
+			"action": "bc",
+			"actions": {"bc":[["bc","-l"]]}
+		},
+		"powershell":{
+			"mime": "text/plain",
+			"syntax": "ruby",
+			"action": "pwsh",
+			"actions": {"pwsh":[["pwsh","-c","-"]]}
+		},
+		"sqlite":{
+			"mime": "text/plain",
+			"syntax": "sql",
+			"action": "sqlite3",
+			"actions": {"sqlite3":[["sqlite3"]]}
+		}
+	}
+}
