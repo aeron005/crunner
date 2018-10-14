@@ -1,11 +1,11 @@
 #!/usr/bin/python3
-import os, collections, subprocess, datetime
+import os, collections, subprocess, datetime, threading
 import config
 
 import gi
 gi.require_version('Gtk','3.0')
 gi.require_version('GtkSource','3.0')
-from gi.repository import Gtk, GtkSource, GObject, Pango
+from gi.repository import GLib, Gtk, GtkSource, GObject, Pango
 GObject.type_register(GtkSource.View)
 
 class CRunner:
@@ -28,6 +28,7 @@ class CRunner:
 		self.output_scroll = builder.get_object("output_scroll")
 		self.language_selector = builder.get_object("language_selector")
 		self.action_selector = builder.get_object("action_selector")
+		self.run_icon = builder.get_object("more_button").get_related_action()
 
 		# Text and data buffers #
 		self.output_buffer = self.output_panel.get_buffer()
@@ -62,6 +63,15 @@ class CRunner:
 		builder.get_object("menubar1").hide()
 		self.code_editor.grab_focus()
 
+		self.set_running(False)
+
+	def set_running(self,is_running):
+		self.is_running = is_running
+		if is_running:
+			self.run_icon.set_stock_id("gtk-media-stop")
+		else:
+			self.run_icon.set_stock_id("gtk-execute")
+
 	def language_changed(self,selector=None):
 		lang = self.language_selector.get_active_id()
 		if lang != None:
@@ -81,13 +91,27 @@ class CRunner:
 			self.action_selector.set_active_id(default)
 
 	def run_action(self,button=None):
+		if self.is_running:
+			return
+
 		lang = self.language_selector.get_active_id()
 		act = self.action_selector.get_active_id()
 		code = self.get_code()
-		out = executor(code, lang, act)
-		self.output += "\n\n"
-		self.output += out
-		self.output_buffer.set_text(self.output)
+
+		def update_thread(out):
+			self.output += "\n\n"
+			self.output += out
+			self.output_buffer.set_text(self.output)
+			self.set_running(False)
+
+		def run_thread():
+			out = executor(code, lang, act)
+			GLib.idle_add(update_thread, out)
+
+		self.set_running(True)
+		thread = threading.Thread(target=run_thread)
+		thread.daemon = True
+		thread.start()
 
 	def new_action(self,button=None):
 		self.current_file = None
