@@ -98,17 +98,21 @@ class CRunner:
 		act = self.action_selector.get_active_id()
 		code = self.get_code()
 
-		def update_thread(out):
-			self.output += "\n\n"
-			self.output += out
-			self.output_buffer.set_text(self.output)
-			self.set_running(False)
+		def append_output(out):
+			if(out and (type(out) is str)):
+				self.output += out
+				self.output_buffer.set_text(self.output)
+
+		def safe_append_output(out):
+			GLib.idle_add(append_output, out)
 
 		def run_thread():
-			out = executor(code, lang, act)
-			GLib.idle_add(update_thread, out)
+			executor(code, lang, act, safe_append_output)
+			GLib.idle_add(self.set_running, False)
 
 		self.set_running(True)
+		append_output("\n\n")
+
 		thread = threading.Thread(target=run_thread)
 		thread.daemon = True
 		thread.start()
@@ -188,33 +192,52 @@ def clean(lang):
 	except:
 		pass
 
-def executor(code, language, action=None):
+def executor(code, language, action, append_output):
 	lang = config.languages[language]
 	if action == None:
 		action = lang['action']
 	act = lang['actions'][action]
-	code_bytes = (code+"\n").encode('utf-8')
 	
 	clean(lang)
 	t_start = datetime.datetime.now()
-	out = "#[%s] %s\n" % (action,str(t_start))
+	append_output("#[%s] %s\n" % (action,str(t_start)))
 	for sub in act:
 		try:
-			p = subprocess.run(sub, input=code_bytes, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-			out += p.stdout.decode("utf-8")
+			p = subprocess.Popen(sub, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+
+			# Write standard input (if applicable) #
+			if code and (type(code) is str):
+				p.stdin.write(code)
+			p.stdin.close()
+
+			# Read and collect standard output (until EOF) #
+			line = p.stdout.readline()
+			while line:
+				append_output(line)
+				line = p.stdout.readline()
+			p.stdout.close()
+
+			# Ensure process has completed #
+			while p.poll() == None:
+				pass
+
+			# Gather return code #
 			if p.returncode != 0:
-				out += "#[ret] %d\n" % (p.returncode)
-				break
-		except:
-			out += "#[err] Critical error during execution\n"
-		code_bytes = None
+				append_output("#[ret] %d\n" % (p.returncode))
+
+		except Exception as e:
+			print(e)
+			append_output("#[err] Critical error during execution\n")
+
+		code = None
+
 	t_end = datetime.datetime.now()
 	clean(lang)
 
 	delta = t_end - t_start
-	out += "#[end] (%.3fs)" % (delta.total_seconds())
+	append_output("#[end] (%.3fs)" % (delta.total_seconds()))
 
-	return out
+	return True
 
 CRunner()
 Gtk.main()
