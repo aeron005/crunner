@@ -224,6 +224,7 @@ def executor(code, language, action, append_output):
 			# Gather return code #
 			if p.returncode != 0:
 				append_output("#[ret] %d\n" % (p.returncode))
+				break
 
 		except Exception as e:
 			print(e)
