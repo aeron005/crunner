@@ -92,6 +92,8 @@ class CRunner:
 
 	def run_action(self,button=None):
 		if self.is_running:
+			if self.kill_switch:
+				self.kill_switch()
 			return
 
 		lang = self.language_selector.get_active_id()
@@ -105,10 +107,17 @@ class CRunner:
 
 		def safe_append_output(out):
 			GLib.idle_add(append_output, out)
+		
+		def set_kill_switch(switch):
+			self.kill_switch = switch
+
+		def cleanup():
+			self.kill_switch = None
+			self.set_running(False)
 
 		def run_thread():
-			executor(code, lang, act, safe_append_output)
-			GLib.idle_add(self.set_running, False)
+			executor(code, lang, act, safe_append_output, set_kill_switch)
+			GLib.idle_add(cleanup)
 
 		self.set_running(True)
 		append_output("\n\n")
@@ -192,7 +201,7 @@ def clean(lang):
 	except:
 		pass
 
-def executor(code, language, action, append_output):
+def executor(code, language, action, append_output, set_kill_switch):
 	lang = config.languages[language]
 	if action == None:
 		action = lang['action']
@@ -210,6 +219,19 @@ def executor(code, language, action, append_output):
 				p.stdin.write(code)
 			p.stdin.close()
 
+			# Set up the kill switch #
+			me = {}
+			me['should_break'] = False
+			def kill_switch(hard=False):
+				me['should_break'] = True
+				if hard:
+					append_output("#[signal] sending kill signal...\n")
+					p.kill()
+				else:
+					append_output("#[signal] sending terminate signal...\n")
+					p.terminate()
+			set_kill_switch(kill_switch)
+
 			# Read and collect standard output (until EOF) #
 			line = p.stdout.readline()
 			while line:
@@ -224,6 +246,10 @@ def executor(code, language, action, append_output):
 			# Gather return code #
 			if p.returncode != 0:
 				append_output("#[ret] %d\n" % (p.returncode))
+				break
+
+			# Contingency #
+			if me['should_break']:
 				break
 
 		except Exception as e:
